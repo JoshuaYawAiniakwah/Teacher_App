@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "OAIS",
+    "slug": "OAIS",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/OFORI ATTAH INTERNATIONAL SCHOOL.png",
+    "userInterfaceStyle": "light",  // or "dark" for testing dark mode
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/OAIS NEW LOGO.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#03AC13"
+    },
+    "entryPoint": "./App.js",           
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#03AC13"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

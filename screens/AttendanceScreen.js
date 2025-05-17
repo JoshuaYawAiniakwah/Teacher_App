@@ -7,19 +7,85 @@ import {
   TouchableOpacity,
   FlatList,
   Alert,
+  ScrollView,
+  Dimensions
 } from 'react-native';
 
-const AttendanceScreen = () => {
-  const [students, setStudents] = useState([
+const mockStudents = {
+  'All Classes': [],
+  'Creche': [
     { id: '1', name: 'Ama Asantewaa', attendance: 'absent', absenceCount: 2, tardyCount: 1 },
+  ],
+  'Nursery 1': [
     { id: '2', name: 'Kwame Nkrumah', attendance: 'absent', absenceCount: 4, tardyCount: 0 },
+  ],
+  'Nursery 2': [
     { id: '3', name: 'Yaw Boateng', attendance: 'absent', absenceCount: 1, tardyCount: 3 },
+  ],
+  'KG 1': [
     { id: '4', name: 'Esi Mensah', attendance: 'absent', absenceCount: 0, tardyCount: 0 },
+  ],
+  'KG 2': [
     { id: '5', name: 'Kofi Addo', attendance: 'absent', absenceCount: 5, tardyCount: 2 },
-  ]);
+  ],
+  'Grade 1': [
+    { id: '6', name: 'Abena Serwaa', attendance: 'absent', absenceCount: 1, tardyCount: 0 },
+  ],
+  'Grade 2': [
+    { id: '7', name: 'Yaa Nkrumah', attendance: 'absent', absenceCount: 2, tardyCount: 1 },
+  ],
+  'Grade 3': [
+    { id: '8', name: 'Kwabena Osei', attendance: 'absent', absenceCount: 3, tardyCount: 0 },
+  ],
+  'Grade 4': [
+    { id: '9', name: 'Ama Ampofo', attendance: 'absent', absenceCount: 1, tardyCount: 2 },
+  ],
+  'Grade 5': [
+    { id: '10', name: 'Kofi Asante', attendance: 'absent', absenceCount: 0, tardyCount: 1 },
+  ],
+  'Grade 6': [
+    { id: '11', name: 'Adwoa Mensah', attendance: 'absent', absenceCount: 2, tardyCount: 0 },
+  ],
+  'Grade 7': [
+    { id: '12', name: 'Yaw Boateng', attendance: 'absent', absenceCount: 1, tardyCount: 1 },
+  ],
+  'Grade 8': [
+    { id: '13', name: 'Esi Asante', attendance: 'absent', absenceCount: 0, tardyCount: 0 },
+  ],
+  'Grade 9': [
+    { id: '14', name: 'Kwame Nkrumah', attendance: 'absent', absenceCount: 1, tardyCount: 0 },
+  ],
+};
 
+const classes = [
+  'All Classes',
+  'Creche',
+  'Nursery 1',
+  'Nursery 2',
+  'KG 1',
+  'KG 2',
+  'Grade 1',
+  'Grade 2',
+  'Grade 3',
+  'Grade 4',
+  'Grade 5',
+  'Grade 6',
+  'Grade 7',
+  'Grade 8',
+  'Grade 9'
+];
+
+const AttendanceScreen = () => {
+  const [selectedClass, setSelectedClass] = useState('All Classes');
+  const [students, setStudents] = useState(mockStudents[selectedClass]);
   const [lastSynced, setLastSynced] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const screenWidth = Dimensions.get('window').width;
+
+  const handleClassSelect = (cls) => {
+    setSelectedClass(cls);
+    setStudents(mockStudents[cls]);
+  };
 
   const updateAttendance = (id, status) => {
     setStudents((prev) =>
@@ -50,6 +116,7 @@ const AttendanceScreen = () => {
     const date = new Date().toLocaleDateString();
     const report = {
       date,
+      class: selectedClass,
       totalStudents: students.length,
       present: students.filter(s => s.attendance === 'present').length,
       absent: students.filter(s => s.attendance === 'absent').length,
@@ -65,7 +132,7 @@ const AttendanceScreen = () => {
     console.log('Detailed Attendance Report:', JSON.stringify(report, null, 2));
     Alert.alert(
       'Report Generated',
-      `Attendance report for ${date} created successfully!\n\nPresent: ${report.present}\nAbsent: ${report.absent}\nTardy: ${report.tardy}`,
+      `Attendance report for ${selectedClass} on ${date} created successfully!\n\nPresent: ${report.present}\nAbsent: ${report.absent}\nTardy: ${report.tardy}`,
       [
         {
           text: 'Share',
@@ -115,6 +182,32 @@ const AttendanceScreen = () => {
       setIsSyncing(false);
       Alert.alert('Sync Complete', 'Attendance data synced successfully with school system.');
     }, 1500);
+  };
+
+  const submitAttendance = () => {
+    if (students.length === 0) {
+      Alert.alert('No Students', 'Please select a class first.');
+      return;
+    }
+
+    const absentStudents = students.filter(s => s.attendance === 'absent').length;
+    Alert.alert(
+      'Confirm Submission',
+      `You are about to submit attendance for ${selectedClass}.\n\nPresent: ${students.filter(s => s.attendance === 'present').length}\nAbsent: ${absentStudents}\nTardy: ${students.filter(s => s.attendance === 'tardy').length}\n\nContinue?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Submit',
+          onPress: () => {
+            console.log('Attendance submitted:', students);
+            Alert.alert('Success', 'Attendance submitted successfully!');
+          },
+        },
+      ]
+    );
   };
 
   const renderStudent = ({ item }) => (
@@ -188,12 +281,38 @@ const AttendanceScreen = () => {
         <Text style={styles.syncStatus}>Last synced: {lastSynced}</Text>
       )}
 
-      <FlatList
-        data={students}
-        keyExtractor={(item) => item.id}
-        renderItem={renderStudent}
-        contentContainerStyle={{ gap: 12, paddingBottom: 20 }}
-        ListHeaderComponent={
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.classFilterScroll}
+        contentContainerStyle={styles.classFilterContainer}
+      >
+        {classes.map(cls => (
+          <TouchableOpacity
+            key={cls}
+            style={[
+              styles.classFilter,
+              selectedClass === cls && styles.selectedClassFilter,
+              { width: screenWidth / 4.5 }
+            ]}
+            onPress={() => handleClassSelect(cls)}
+          >
+            <Text 
+              style={[
+                styles.classFilterText,
+                selectedClass === cls && styles.selectedClassFilterText
+              ]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {cls}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {selectedClass !== 'All Classes' && students.length > 0 ? (
+        <>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryText}>
               Present: {students.filter(s => s.attendance === 'present').length}
@@ -205,8 +324,23 @@ const AttendanceScreen = () => {
               Tardy: {students.filter(s => s.attendance === 'tardy').length}
             </Text>
           </View>
-        }
-      />
+
+          <FlatList
+            data={students}
+            keyExtractor={(item) => item.id}
+            renderItem={renderStudent}
+            contentContainerStyle={{ gap: 12, paddingBottom: 20 }}
+          />
+        </>
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>
+            {selectedClass === 'All Classes' 
+              ? 'Please select a class to view students' 
+              : 'No students found in this class'}
+          </Text>
+        </View>
+      )}
 
       <View style={styles.actions}>
         <TouchableOpacity 
@@ -214,6 +348,13 @@ const AttendanceScreen = () => {
           onPress={generateReport}
         >
           <Text style={styles.actionButtonText}>Generate Report</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.submitButton]}
+          onPress={submitAttendance}
+        >
+          <Text style={styles.actionButtonText}>Submit Attendance</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -226,8 +367,6 @@ const AttendanceScreen = () => {
     </SafeAreaView>
   );
 };
-
-export default AttendanceScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -261,6 +400,33 @@ const styles = StyleSheet.create({
     color: '#7f8c8d',
     marginBottom: 12,
     textAlign: 'right',
+  },
+  classFilterScroll: {
+    marginBottom: 16,
+    maxHeight: 50,
+  },
+  classFilterContainer: {
+    paddingRight: 16,
+  },
+  classFilter: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#eee',
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedClassFilter: {
+    backgroundColor: '#03AC13',
+  },
+  classFilterText: {
+    color: '#333',
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  selectedClassFilterText: {
+    color: 'white',
   },
   studentRow: {
     backgroundColor: 'white',
@@ -341,11 +507,19 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
-    backgroundColor: '#03AC13',
   },
   actionButtonText: {
     color: 'white',
     fontWeight: '600',
+  },
+  reportButton: {
+    backgroundColor: '#03AC13',
+  },
+  submitButton: {
+    backgroundColor: '#3498db',
+  },
+  flagButton: {
+    backgroundColor: '#e74c3c',
   },
   summaryRow: {
     flexDirection: 'row',
@@ -359,4 +533,18 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '600',
   },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    color: '#666',
+    fontSize: 16,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
 });
+
+export default AttendanceScreen;

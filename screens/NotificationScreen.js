@@ -12,8 +12,10 @@ import {
   SafeAreaView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../context/themeContext';
 
 const NotificationScreen = ({ navigation }) => {
+  const { colors } = useTheme();
   const [notifications, setNotifications] = useState([
     {
       id: '1',
@@ -79,16 +81,17 @@ const NotificationScreen = ({ navigation }) => {
     setNotifications(notifications.filter(notif => notif.id !== id));
   };
 
+  const styles = createStyles(colors);
+
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Custom Header - Only one back button */}
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#03AC13" />
+          <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Notifications</Text>
+        <Text style={[styles.headerTitle, { color: colors.primary }]}>Notifications</Text>
         <TouchableOpacity>
-          <Ionicons name="filter" size={24} color="#03AC13" />
+          <Ionicons name="filter" size={24} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -98,27 +101,32 @@ const NotificationScreen = ({ navigation }) => {
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
           <TouchableOpacity 
-            style={[styles.notificationItem, !item.read && styles.unreadNotification]}
+            style={[
+              styles.notificationItem, 
+              { backgroundColor: colors.card },
+              !item.read && styles.unreadNotification,
+              !item.read && { borderLeftColor: colors.primary }
+            ]}
             onPress={() => markAsRead(item.id)}
           >
             <Image source={item.avatar} style={styles.avatar} />
             <View style={styles.notificationContent}>
               <View style={styles.notificationHeader}>
-                <Text style={styles.sender}>{item.sender}</Text>
+                <Text style={[styles.sender, { color: colors.text }]}>{item.sender}</Text>
                 <View style={styles.notificationMeta}>
-                  <Text style={styles.time}>{item.time}</Text>
+                  <Text style={[styles.time, { color: colors.textSecondary }]}>{item.time}</Text>
                   <TouchableOpacity onPress={() => deleteNotification(item.id)}>
                     <Ionicons name="trash-outline" size={18} color="#e74c3c" />
                   </TouchableOpacity>
                 </View>
               </View>
-              <Text style={styles.notificationText}>{item.message}</Text>
+              <Text style={[styles.notificationText, { color: colors.textSecondary }]}>{item.message}</Text>
               {item.type !== 'reply' && (
                 <TouchableOpacity 
-                  style={styles.replyButton}
+                  style={[styles.replyButton, { backgroundColor: colors.primary + '20' }]}
                   onPress={() => handleReply(item)}
                 >
-                  <Text style={styles.replyButtonText}>Reply</Text>
+                  <Text style={[styles.replyButtonText, { color: colors.primary }]}>Reply</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -129,19 +137,20 @@ const NotificationScreen = ({ navigation }) => {
       {replyingTo && (
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.replyContainer}
+          style={[styles.replyContainer, { backgroundColor: colors.card, borderTopColor: colors.border }]}
         >
-          <Text style={styles.replyingTo}>Replying to: {replyingTo.sender}</Text>
+          <Text style={[styles.replyingTo, { color: colors.textSecondary }]}>Replying to: {replyingTo.sender}</Text>
           <View style={styles.inputContainer}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
               placeholder="Type your reply..."
+              placeholderTextColor={colors.textSecondary}
               value={replyText}
               onChangeText={setReplyText}
               multiline
             />
             <TouchableOpacity onPress={sendReply} style={styles.sendButton}>
-              <Ionicons name="send" size={24} color="#03AC13" />
+              <Ionicons name="send" size={24} color={colors.primary} />
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -150,24 +159,20 @@ const NotificationScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 15,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#03AC13',
   },
   listContent: {
     paddingBottom: 80,
@@ -175,14 +180,11 @@ const styles = StyleSheet.create({
   notificationItem: {
     flexDirection: 'row',
     padding: 15,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.border,
   },
   unreadNotification: {
-    backgroundColor: '#f0f8ff',
     borderLeftWidth: 4,
-    borderLeftColor: '#03AC13',
   },
   avatar: {
     width: 50,
@@ -208,22 +210,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   time: {
-    color: '#888',
     fontSize: 12,
   },
   notificationText: {
-    color: '#555',
     marginBottom: 10,
   },
   replyButton: {
     alignSelf: 'flex-start',
     paddingVertical: 5,
     paddingHorizontal: 10,
-    backgroundColor: '#e8f5e9',
     borderRadius: 15,
   },
   replyButtonText: {
-    color: '#03AC13',
     fontSize: 14,
   },
   replyContainer: {
@@ -231,13 +229,10 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
     padding: 10,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
   },
   replyingTo: {
-    color: '#666',
     fontSize: 12,
     marginBottom: 5,
     fontStyle: 'italic',
@@ -249,13 +244,11 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#ddd',
     borderRadius: 20,
     paddingHorizontal: 15,
     paddingVertical: 10,
     minHeight: 40,
     maxHeight: 100,
-    backgroundColor: '#fff',
   },
   sendButton: {
     marginLeft: 10,

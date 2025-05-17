@@ -8,6 +8,7 @@ import {
   Pressable,
   Platform,
   Image,
+  SafeAreaView,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Animated, {
@@ -17,11 +18,12 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 
-import colors from '../constants/colors';
+import { useTheme } from '../context/themeContext';
 import AuthContext from '../context/authContext';
 
 const LoginScreen = () => {
-  const { login } = useContext(AuthContext); // ← from context
+  const { login } = useContext(AuthContext);
+  const { colors } = useTheme();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -61,38 +63,47 @@ const LoginScreen = () => {
     setTimeout(() => {
       setLoading(false);
       if (email === 'teacher@example.com' && password === 'password123') {
-        login({ email }); // ✅ successful login
+        login({ email });
       } else {
         setError('Invalid email or password.');
       }
     }, 1500);
   };
 
+  const styles = createStyles(colors);
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <Animated.Image
-        source={require('../assets/OAIS NEW LOGO.png')}
+        source={require('../assets/splash.png')}
         style={[styles.logo, logoAnimatedStyle]}
         resizeMode="contain"
       />
 
-      <Text style={styles.title}>Teacher Login</Text>
+      <Text style={[styles.title, { color: colors.primary }]}>Teacher Login</Text>
 
       <TextInput
-        style={styles.input}
+        style={[styles.input, { 
+          borderColor: colors.border, 
+          backgroundColor: colors.card,
+          color: colors.text 
+        }]}
         placeholder="Email"
-        placeholderTextColor="#888"
+        placeholderTextColor={colors.textSecondary}
         keyboardType="email-address"
         autoCapitalize="none"
         value={email}
         onChangeText={setEmail}
       />
 
-      <View style={styles.passwordContainer}>
+      <View style={[styles.passwordContainer, { 
+        borderColor: colors.border, 
+        backgroundColor: colors.card 
+      }]}>
         <TextInput
-          style={styles.passwordInput}
+          style={[styles.passwordInput, { color: colors.text }]}
           placeholder="Password"
-          placeholderTextColor="#888"
+          placeholderTextColor={colors.textSecondary}
           secureTextEntry={!showPassword}
           value={password}
           onChangeText={setPassword}
@@ -101,21 +112,22 @@ const LoginScreen = () => {
           <Ionicons
             name={showPassword ? 'eye-off-outline' : 'eye-outline'}
             size={24}
-            color="#888"
+            color={colors.textSecondary}
           />
         </Pressable>
       </View>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
 
       {loading ? (
         <ActivityIndicator size="large" color={colors.primary} />
       ) : (
         <Pressable
           onPress={handleLogin}
-          android_ripple={{ color: '#ffffff30' }}
+          android_ripple={{ color: colors.ripple }}
           style={({ pressed }) => [
             styles.loginButton,
+            { backgroundColor: colors.primary },
             pressed && Platform.OS === 'ios' && styles.loginButtonPressed,
           ]}
         >
@@ -124,24 +136,21 @@ const LoginScreen = () => {
       )}
 
       <Pressable
-        onPress={() =>
-          alert('Password reset link sent to your email (mock).')
-        }
+        onPress={() => alert('Password reset link sent to your email (mock).')}
       >
-        <Text style={styles.forgot}>Forgot Password?</Text>
+        <Text style={[styles.forgot, { color: colors.textSecondary }]}>Forgot Password?</Text>
       </Pressable>
-    </View>
+    </SafeAreaView>
   );
 };
 
 export default LoginScreen;
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
     justifyContent: 'center',
-    backgroundColor: '#fff',
   },
   logo: {
     width: 100,
@@ -153,11 +162,9 @@ const styles = StyleSheet.create({
     fontSize: 26,
     marginBottom: 20,
     textAlign: 'center',
-    color: colors.primary,
     fontWeight: 'bold',
   },
   input: {
-    borderColor: '#ccc',
     borderWidth: 1,
     padding: 12,
     borderRadius: 8,
@@ -166,7 +173,6 @@ const styles = StyleSheet.create({
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderColor: '#ccc',
     borderWidth: 1,
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -177,12 +183,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   error: {
-    color: 'red',
     marginBottom: 10,
     textAlign: 'center',
   },
   loginButton: {
-    backgroundColor: colors.primary,
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
@@ -200,7 +204,6 @@ const styles = StyleSheet.create({
   forgot: {
     marginTop: 12,
     textAlign: 'center',
-    color: '#555',
     textDecorationLine: 'underline',
   },
 });

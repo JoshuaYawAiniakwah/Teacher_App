@@ -10,6 +10,7 @@ import {
   Dimensions
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../context/themeContext';
 
 const mockTimetable = [
   {
@@ -57,24 +58,27 @@ const mockTimetable = [
 const TimetableScreen = () => {
   const [currentDay, setCurrentDay] = useState('Monday');
   const screenWidth = Dimensions.get('window').width;
+  const { colors, isDarkMode } = useTheme();
 
   const currentDayClasses = mockTimetable.find(day => day.day === currentDay)?.classes || [];
 
   const getTypeColor = (type) => {
     switch(type) {
-      case 'lecture': return '#3498db';
-      case 'lab': return '#e74c3c';
-      case 'meeting': return '#9b59b6';
-      case 'tutorial': return '#2ecc71';
-      case 'quiz': return '#f39c12';
-      default: return '#03AC13';
+      case 'lecture': return isDarkMode ? '#4a8cff' : '#3498db';
+      case 'lab': return isDarkMode ? '#ff6b6b' : '#e74c3c';
+      case 'meeting': return isDarkMode ? '#b580e0' : '#9b59b6';
+      case 'tutorial': return isDarkMode ? '#4cd97b' : '#2ecc71';
+      case 'quiz': return isDarkMode ? '#ffb347' : '#f39c12';
+      default: return colors.primary;
     }
   };
 
+  const styles = createStyles(colors, screenWidth, isDarkMode);
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Class Timetable</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Class Timetable</Text>
       </View>
 
       <ScrollView 
@@ -88,13 +92,19 @@ const TimetableScreen = () => {
             style={[
               styles.dayButton,
               currentDay === day.day && styles.activeDayButton,
-              { width: screenWidth / 4.5 }
+              { 
+                width: screenWidth / 4.5,
+                backgroundColor: currentDay === day.day ? colors.primary : colors.card 
+              }
             ]}
             onPress={() => setCurrentDay(day.day)}
           >
             <Text style={[
               styles.dayButtonText,
-              currentDay === day.day && styles.activeDayButtonText
+              { 
+                color: currentDay === day.day ? 'white' : colors.text,
+                fontWeight: currentDay === day.day ? 'bold' : '600'
+              }
             ]}>
               {day.day.substring(0, 3)}
             </Text>
@@ -102,19 +112,24 @@ const TimetableScreen = () => {
         ))}
       </ScrollView>
 
-      <View style={styles.timetableContainer}>
+      <View style={[styles.timetableContainer, { backgroundColor: colors.card }]}>
         {currentDayClasses.length > 0 ? (
           <FlatList
             data={currentDayClasses}
             keyExtractor={item => item.id}
             renderItem={({ item }) => (
-              <View style={styles.classCard}>
-                <View style={styles.classTimeContainer}>
-                  <Text style={styles.timeText}>{item.time}</Text>
+              <View style={[styles.classCard, { 
+                backgroundColor: colors.card,
+                borderLeftColor: colors.primary 
+              }]}>
+                <View style={[styles.classTimeContainer, { 
+                  backgroundColor: isDarkMode ? '#2a2a2a' : '#E8F5E9' 
+                }]}>
+                  <Text style={[styles.timeText, { color: colors.primary }]}>{item.time}</Text>
                 </View>
                 <View style={styles.classDetails}>
                   <View style={styles.classHeader}>
-                    <Text style={styles.subjectText}>{item.subject}</Text>
+                    <Text style={[styles.subjectText, { color: colors.text }]}>{item.subject}</Text>
                     <View style={[
                       styles.typeBadge,
                       { backgroundColor: getTypeColor(item.type) }
@@ -124,11 +139,15 @@ const TimetableScreen = () => {
                   </View>
                   <View style={styles.classFooter}>
                     <View style={styles.roomContainer}>
-                      <Ionicons name="location" size={16} color="#666" />
-                      <Text style={styles.roomText}>Room {item.room}</Text>
+                      <Ionicons name="location" size={16} color={colors.textSecondary} />
+                      <Text style={[styles.roomText, { color: colors.textSecondary }]}>Room {item.room}</Text>
                     </View>
                     <TouchableOpacity style={styles.moreButton}>
-                      <Ionicons name="ellipsis-vertical" size={20} color="#999" />
+                      <Ionicons 
+                        name="ellipsis-vertical" 
+                        size={20} 
+                        color={colors.textSecondary} 
+                      />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -138,8 +157,8 @@ const TimetableScreen = () => {
           />
         ) : (
           <View style={styles.noClasses}>
-            <Ionicons name="calendar" size={48} color="#03AC13" />
-            <Text style={styles.noClassesText}>No classes scheduled</Text>
+            <Ionicons name="calendar" size={48} color={colors.primary} />
+            <Text style={[styles.noClassesText, { color: colors.textSecondary }]}>No classes scheduled</Text>
           </View>
         )}
       </View>
@@ -147,72 +166,68 @@ const TimetableScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors, screenWidth, isDarkMode) => StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#f5f5f5',
   },
   header: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#03AC13',
   },
   daysContainer: {
-    paddingBottom: 10,
-    marginBottom: 16,
+    paddingBottom: 4,
+    marginBottom: 12,
   },
   dayButton: {
     paddingVertical: 12,
     borderRadius: 8,
     marginRight: 8,
-    backgroundColor: '#eee',
     alignItems: 'center',
     justifyContent: 'center',
   },
   activeDayButton: {
-    backgroundColor: '#03AC13',
+    elevation: 2,
   },
   dayButtonText: {
-    fontWeight: '600',
     fontSize: 14,
-  },
-  activeDayButtonText: {
-    color: 'white',
   },
   timetableContainer: {
     flex: 1,
-    backgroundColor: 'white',
     borderRadius: 10,
     padding: 16,
     elevation: 2,
+    shadowColor: isDarkMode ? '#000' : '#ccc',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   listContent: {
     paddingBottom: 20,
   },
   classCard: {
     flexDirection: 'row',
-    backgroundColor: 'white',
     borderRadius: 8,
     marginBottom: 12,
     borderLeftWidth: 4,
-    borderLeftColor: '#03AC13',
     overflow: 'hidden',
     elevation: 1,
+    shadowColor: isDarkMode ? '#000' : '#ccc',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   classTimeContainer: {
     width: 90,
     padding: 12,
-    backgroundColor: '#E8F5E9',
     justifyContent: 'center',
     alignItems: 'center',
   },
   timeText: {
     fontWeight: '600',
-    color: '#03AC13',
     textAlign: 'center',
   },
   classDetails: {
@@ -227,7 +242,6 @@ const styles = StyleSheet.create({
   subjectText: {
     fontWeight: '600',
     fontSize: 16,
-    color: '#2c3e50',
     flex: 1,
   },
   typeBadge: {
@@ -235,6 +249,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 10,
     marginLeft: 8,
+    alignSelf: 'flex-start',
   },
   typeText: {
     color: 'white',
@@ -251,7 +266,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   roomText: {
-    color: '#666',
     fontSize: 14,
     marginLeft: 4,
   },
@@ -266,7 +280,6 @@ const styles = StyleSheet.create({
   },
   noClassesText: {
     marginTop: 16,
-    color: '#666',
     fontSize: 16,
   },
 });

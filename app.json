@@ -4,19 +4,22 @@
     "slug": "OAIS",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/OFORI ATTAH INTERNATIONAL SCHOOL.png",
-    "userInterfaceStyle": "light",  // or "dark" for testing dark mode
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/OAIS NEW LOGO.png",
+      "image": "./assets/splash.png",
       "resizeMode": "cover",
       "backgroundColor": "#03AC13"
     },
-    "entryPoint": "./App.js",           
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.thealteragroup.oais",
+      "buildNumber": "1.0.0"
     },
     "android": {
+      "package": "com.thealteragroup.oais",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#03AC13"
@@ -24,6 +27,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "85f0138c-02aa-403e-af93-fbb9b27e5787"
+      }
     }
   }
 }

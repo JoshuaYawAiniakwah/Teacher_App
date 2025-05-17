@@ -1,268 +1,848 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity, TextInput, Alert } from 'react-native';
+import React, { useState, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  FlatList,
+  TouchableOpacity,
+  TextInput,
+  SafeAreaView,
+  Dimensions,
+  Modal,
+  Alert,
+  Platform,
+  Keyboard,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import RNPickerSelect from 'react-native-picker-select';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTheme } from '../context/themeContext';
+
+const screenWidth = Dimensions.get('window').width;
+const screenHeight = Dimensions.get('window').height;
 
 const mockStudents = [
-  { id: '1', name: 'Ama Asantewaa', grades: { '1': 85, '2': 90 } },
-  { id: '2', name: 'Kwame Nkrumah', grades: { '1': 72, '2': 68 } },
-  { id: '3', name: 'Yaw Boateng', grades: { '1': 92, '2': 88 } },
-  { id: '4', name: 'Esi Mensah', grades: { '1': 65, '2': 70 } },
-  { id: '5', name: 'Kofi Addo', grades: { '1': 78, '2': 82 } },
+  { id: '1', name: 'Ama Asantewaa', class: 'Creche' },
+  { id: '2', name: 'Kwame Nkrumah', class: 'Nursery 1' },
+  { id: '3', name: 'Yaw Boateng', class: 'Nursery 2' },
+  { id: '4', name: 'Esi Mensah', class: 'KG 1' },
+  { id: '5', name: 'Kofi Addo', class: 'KG 2' },
+  { id: '6', name: 'Abena Serwaa', class: 'Grade 1' },
+  { id: '7', name: 'Yaa Nkrumah', class: 'Grade 2' },
+  { id: '8', name: 'Kwabena Osei', class: 'Grade 3' },
+  { id: '9', name: 'Ama Ampofo', class: 'Grade 4' },
+  { id: '10', name: 'Kofi Asante', class: 'Grade 5' },
+  { id: '11', name: 'Adwoa Mensah', class: 'Grade 6' },
+  { id: '12', name: 'Yaw Boateng', class: 'Grade 7' },
+  { id: '13', name: 'Esi Asante', class: 'Grade 8' },
+  { id: '14', name: 'Kwame Nkrumah', class: 'Grade 9' },
 ];
 
-const mockAssignments = [
-  { id: '1', title: 'Math Quiz', maxScore: 100, date: '2023-10-15' },
-  { id: '2', title: 'Science Test', maxScore: 100, date: '2023-10-20' },
+const classes = [
+  'Creche',
+  'Nursery 1',
+  'Nursery 2',
+  'KG 1',
+  'KG 2',
+  'Grade 1',
+  'Grade 2',
+  'Grade 3',
+  'Grade 4',
+  'Grade 5',
+  'Grade 6',
+  'Grade 7',
+  'Grade 8',
+  'Grade 9'
+];
+
+const subjects = [
+  'Mathematics',
+  'English',
+  'Science',
+  'Social Studies',
+  'ICT',
+  'Creative Arts',
+  'Physical Education'
+];
+
+const mockTests = [
+  {
+    id: '1',
+    title: 'Math Midterm',
+    description: 'Covers chapters 1-5',
+    date: '2023-05-15',
+    subject: 'Mathematics',
+    class: 'Grade 1',
+    maxScore: 100,
+    grades: {
+      '1': 85,
+      '2': 72,
+      '3': 92,
+      '4': 65,
+      '5': 78
+    }
+  },
+  {
+    id: '2',
+    title: 'Science Quiz',
+    description: 'Basic concepts quiz',
+    date: '2023-05-20',
+    subject: 'Science',
+    class: 'Grade 1',
+    maxScore: 50,
+    grades: {
+      '1': 42,
+      '2': 38,
+      '3': 45,
+      '4': 30,
+      '5': 35
+    }
+  },
+  {
+    id: '3',
+    title: 'English Test',
+    description: 'Grammar and comprehension',
+    date: '2023-05-10',
+    subject: 'English',
+    class: 'Grade 2',
+    maxScore: 80,
+    grades: {
+      '6': 65,
+      '7': 72,
+      '8': 68
+    }
+  },
 ];
 
 const GradebookScreen = () => {
-  const [students, setStudents] = useState(mockStudents);
-  const [assignments, setAssignments] = useState(mockAssignments);
-  const [selectedAssignment, setSelectedAssignment] = useState(mockAssignments[0]);
-  const [newAssignment, setNewAssignment] = useState({ title: '', maxScore: '' });
+  const { colors } = useTheme();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [selectedTest, setSelectedTest] = useState(null);
+  const [showTestModal, setShowTestModal] = useState(false);
+  const [tests, setTests] = useState(mockTests);
+  const [newTest, setNewTest] = useState({
+    title: '',
+    description: '',
+    date: new Date(),
+    subject: null,
+    class: null,
+    maxScore: ''
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempDate, setTempDate] = useState(new Date());
 
-  const updateGrade = (studentId, grade) => {
-    setStudents(prev => prev.map(student => {
-      if (student.id === studentId) {
+  const styles = createStyles(colors);
+  const pickerStyles = createPickerStyles(colors);
+  const testModalScrollRef = useRef(null);
+
+  const dismissKeyboard = () => {
+    Keyboard.dismiss();
+  };
+
+  // Filter students by selected class
+  const filteredStudents = selectedClass 
+    ? mockStudents.filter(student => {
+        const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesClass = student.class === selectedClass;
+        return matchesSearch && matchesClass;
+      })
+    : [];
+
+  // Filter tests by selected class and subject
+  const filteredTests = selectedClass && selectedSubject
+    ? tests.filter(test => 
+        test.class === selectedClass && 
+        test.subject === selectedSubject
+      )
+    : [];
+
+  const handleUpdateGrade = (studentId, grade) => {
+    if (!selectedTest) return;
+    
+    const updatedTests = tests.map(test => {
+      if (test.id === selectedTest.id) {
         return {
-          ...student,
+          ...test,
           grades: {
-            ...student.grades,
-            [selectedAssignment.id]: parseInt(grade) || 0
+            ...test.grades,
+            [studentId]: parseInt(grade) || 0
           }
         };
       }
-      return student;
-    }));
+      return test;
+    });
+    
+    setTests(updatedTests);
+    setSelectedTest(updatedTests.find(t => t.id === selectedTest.id));
   };
 
-  const addAssignment = () => {
-    if (!newAssignment.title || !newAssignment.maxScore) {
-      Alert.alert('Error', 'Please fill all fields');
+  const handleSubmitGrades = () => {
+    Alert.alert('Success', 'Grades submitted successfully');
+  };
+
+  const handleExportGrades = () => {
+    Alert.alert('Success', 'Grades exported successfully');
+  };
+
+  const handleDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || newTest.date;
+    setShowDatePicker(Platform.OS === 'ios');
+    setNewTest({...newTest, date: currentDate});
+  };
+
+  const showDatepicker = () => {
+    setTempDate(newTest.date);
+    setShowDatePicker(true);
+  };
+
+  const handleAddTest = () => {
+    if (!newTest.title || !newTest.class || !newTest.subject || !newTest.maxScore) {
+      Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
-
-    const newId = (assignments.length + 1).toString();
-    setAssignments(prev => [
-      ...prev,
-      {
-        id: newId,
-        title: newAssignment.title,
-        maxScore: parseInt(newAssignment.maxScore),
-        date: new Date().toISOString().split('T')[0]
-      }
-    ]);
-    setNewAssignment({ title: '', maxScore: '' });
-    setSelectedAssignment(assignments[0]);
+    
+    const formattedDate = newTest.date.toISOString().split('T')[0];
+    
+    const test = {
+      ...newTest,
+      id: Date.now().toString(),
+      date: formattedDate,
+      maxScore: parseInt(newTest.maxScore),
+      grades: {}
+    };
+    
+    setTests([...tests, test]);
+    setNewTest({
+      title: '',
+      description: '',
+      date: new Date(),
+      subject: selectedSubject,
+      class: selectedClass,
+      maxScore: ''
+    });
+    setShowTestModal(false);
   };
 
-  const exportGrades = () => {
-    Alert.alert('Success', 'Grades exported successfully (mock)');
-  };
-
-  const calculateAverage = (student) => {
-    const grades = Object.values(student.grades);
-    if (grades.length === 0) return 0;
-    return (grades.reduce((a, b) => a + b, 0) / grades.length).toFixed(1);
-  };
-
-  const renderStudent = ({ item }) => (
-    <View style={styles.studentRow}>
-      <Text style={styles.studentName}>{item.name}</Text>
-      <Text style={styles.gradeText}>
-        {item.grades[selectedAssignment.id] || '--'} / {selectedAssignment.maxScore}
-      </Text>
-      <TextInput
-        style={styles.gradeInput}
-        keyboardType="numeric"
-        placeholder="Grade"
-        onChangeText={(text) => updateGrade(item.id, text)}
-        value={item.grades[selectedAssignment.id]?.toString() || ''}
-      />
-      <Text style={styles.averageText}>{calculateAverage(item)}%</Text>
+  const renderStudentItem = ({ item }) => (
+    <View style={[styles.studentCard, { 
+      backgroundColor: colors.card,
+      borderLeftColor: colors.primary 
+    }]}>
+      <View style={[styles.studentAvatar, { backgroundColor: colors.primary + '20' }]}>
+        <Ionicons name="person" size={24} color={colors.primary} />
+      </View>
+      <View style={styles.studentInfo}>
+        <Text style={[styles.studentName, { color: colors.text }]}>{item.name}</Text>
+        <Text style={[styles.studentClass, { color: colors.textSecondary }]}>{item.class}</Text>
+      </View>
+      {selectedTest && (
+        <View style={styles.gradeInputContainer}>
+          <TextInput
+            style={[styles.gradeInput, { 
+              borderColor: colors.border, 
+              backgroundColor: colors.inputBackground,
+              color: colors.text 
+            }]}
+            keyboardType="numeric"
+            placeholder="Grade"
+            placeholderTextColor={colors.textSecondary}
+            onChangeText={(text) => handleUpdateGrade(item.id, text)}
+            value={selectedTest.grades[item.id]?.toString() || ''}
+          />
+          <Text style={[styles.maxScoreText, { color: colors.textSecondary }]}>
+            / {selectedTest.maxScore}
+          </Text>
+        </View>
+      )}
     </View>
   );
 
+  const renderTestDetails = () => {
+    if (!selectedTest) return null;
+    
+    return (
+      <View style={[styles.testDetailsContainer, { backgroundColor: colors.card }]}>
+        <Text style={[styles.detailTitle, { color: colors.primary }]}>Test Details</Text>
+        <Text style={[styles.detailLabel, { color: colors.text }]}>Title:</Text>
+        <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTest.title}</Text>
+        
+        <Text style={[styles.detailLabel, { color: colors.text }]}>Subject:</Text>
+        <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTest.subject}</Text>
+        
+        <Text style={[styles.detailLabel, { color: colors.text }]}>Date:</Text>
+        <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTest.date}</Text>
+        
+        <Text style={[styles.detailLabel, { color: colors.text }]}>Description:</Text>
+        <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTest.description}</Text>
+        
+        <Text style={[styles.detailLabel, { color: colors.text }]}>Max Score:</Text>
+        <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTest.maxScore}</Text>
+      </View>
+    );
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Gradebook</Text>
-      
-      <View style={styles.assignmentHeader}>
-        <Text style={styles.sectionTitle}>Assignments</Text>
-        <TouchableOpacity style={styles.addButton} onPress={addAssignment}>
-          <Text style={styles.addButtonText}>+ Add</Text>
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: colors.primary }]}>Gradebook</Text>
+        </View>
 
-      <View style={styles.newAssignmentContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Assignment Title"
-          value={newAssignment.title}
-          onChangeText={(text) => setNewAssignment({...newAssignment, title: text})}
-        />
-        <TextInput
-          style={[styles.input, { width: 80 }]}
-          placeholder="Max Score"
-          keyboardType="numeric"
-          value={newAssignment.maxScore}
-          onChangeText={(text) => setNewAssignment({...newAssignment, maxScore: text})}
-        />
-      </View>
-
-      <FlatList
-        horizontal
-        data={assignments}
-        renderItem={({ item }) => (
-          <TouchableOpacity 
-            style={[
-              styles.assignmentTab, 
-              selectedAssignment?.id === item.id && styles.selectedAssignment
-            ]}
-            onPress={() => setSelectedAssignment(item)}
+        <View style={styles.fixedFilterBar}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.classFilterContainer}
           >
-            <Text>{item.title}</Text>
-          </TouchableOpacity>
-        )}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.assignmentsList}
-      />
+            {classes.map(cls => (
+              <TouchableOpacity
+                key={cls}
+                style={[
+                  styles.classFilter,
+                  { 
+                    backgroundColor: colors.inputBackground,
+                    width: screenWidth / 4.5 
+                  },
+                  selectedClass === cls && [
+                    styles.selectedClassFilter, 
+                    { backgroundColor: colors.primary }
+                  ]
+                ]}
+                onPress={() => {
+                  setSelectedClass(cls);
+                  setSelectedSubject(null);
+                  setSelectedTest(null);
+                  setNewTest(prev => ({ ...prev, class: cls }));
+                }}
+              >
+                <Text 
+                  style={[
+                    styles.classFilterText,
+                    { color: colors.text },
+                    selectedClass === cls && styles.selectedClassFilterText
+                  ]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {cls}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
-      <FlatList
-        data={students}
-        renderItem={renderStudent}
-        keyExtractor={item => item.id}
-        ListHeaderComponent={
-          <View style={styles.studentHeader}>
-            <Text style={styles.headerText}>Student</Text>
-            <Text style={styles.headerText}>Grade</Text>
-            <Text style={styles.headerText}>Input</Text>
-            <Text style={styles.headerText}>Avg</Text>
+        {selectedClass && (
+          <View style={[styles.subjectFilterContainer, { backgroundColor: colors.card }]}>
+            <RNPickerSelect
+              onValueChange={(value) => {
+                setSelectedSubject(value);
+                setSelectedTest(null);
+                setNewTest(prev => ({ ...prev, subject: value }));
+              }}
+              items={subjects.map(subject => ({ label: subject, value: subject }))}
+              value={selectedSubject}
+              style={pickerStyles}
+              useNativeAndroidPickerStyle={false}
+              placeholder={{ label: "Select a subject", value: null }}
+              Icon={() => {
+                return <Ionicons name="chevron-down" size={20} color={colors.primary} />;
+              }}
+            />
           </View>
-        }
-      />
+        )}
 
-      <TouchableOpacity style={styles.exportButton} onPress={exportGrades}>
-        <Text style={styles.exportButtonText}>Export Grades</Text>
-      </TouchableOpacity>
+        {selectedClass && selectedSubject && (
+          <View style={[styles.testFilterContainer, { backgroundColor: colors.card }]}>
+            <RNPickerSelect
+              onValueChange={(value) => {
+                const test = filteredTests.find(t => t.id === value);
+                setSelectedTest(test);
+              }}
+              items={filteredTests.map(test => ({ 
+                label: test.title, 
+                value: test.id 
+              }))}
+              value={selectedTest?.id}
+              style={pickerStyles}
+              useNativeAndroidPickerStyle={false}
+              placeholder={{ label: "Select a test", value: null }}
+              Icon={() => {
+                return <Ionicons name="chevron-down" size={20} color={colors.primary} />;
+              }}
+            />
+          </View>
+        )}
+
+        {selectedTest && renderTestDetails()}
+
+        {selectedClass && selectedSubject && selectedTest && (
+          <>
+            <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
+              <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+              <TextInput
+                style={[styles.searchInput, { color: colors.text }]}
+                placeholder="Search students..."
+                placeholderTextColor={colors.textSecondary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+
+            <View style={styles.studentListContainer}>
+              <FlatList
+                data={filteredStudents}
+                renderItem={renderStudentItem}
+                keyExtractor={item => item.id}
+                scrollEnabled={false}
+                contentContainerStyle={styles.listContent}
+                ListEmptyComponent={
+                  <View style={styles.emptyContainer}>
+                    <Ionicons name="people" size={48} color={colors.primary} />
+                    <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No students found</Text>
+                  </View>
+                }
+              />
+            </View>
+          </>
+        )}
+      </ScrollView>
+
+      {selectedClass && selectedSubject && selectedTest && (
+        <View style={styles.actionButtonsContainer}>
+          <TouchableOpacity
+            style={[styles.bottomButton, styles.exportButton, { backgroundColor: colors.secondary }]}
+            onPress={handleExportGrades}
+          >
+            <Text style={styles.bottomButtonText}>Export Grades</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.bottomButton, styles.submitButton, { backgroundColor: colors.primary }]}
+            onPress={handleSubmitGrades}
+          >
+            <Text style={styles.bottomButtonText}>Submit Grades</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {selectedClass && selectedSubject && !selectedTest && (
+        <TouchableOpacity
+          style={[styles.addButton, { backgroundColor: colors.primary }]}
+          onPress={() => setShowTestModal(true)}
+        >
+          <Ionicons name="add" size={24} color="white" />
+        </TouchableOpacity>
+      )}
+
+      {/* Add Test Modal */}
+      <Modal
+        visible={showTestModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowTestModal(false)}
+      >
+        <TouchableWithoutFeedback onPress={dismissKeyboard}>
+          <View style={styles.modalContainer}>
+            <KeyboardAvoidingView 
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={[styles.modalContent, { 
+                backgroundColor: colors.card,
+                maxHeight: screenHeight * 0.8 
+              }]}
+            >
+              <ScrollView 
+                ref={testModalScrollRef}
+                contentContainerStyle={styles.modalScrollContent}
+                showsVerticalScrollIndicator={true}
+              >
+                <Text style={[styles.modalTitle, { color: colors.primary }]}>Add New Test</Text>
+                
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Class</Text>
+                <Text style={[styles.readOnlyValue, { 
+                  backgroundColor: colors.inputBackground,
+                  color: colors.text 
+                }]}>
+                  {selectedClass}
+                </Text>
+                
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Subject</Text>
+                <Text style={[styles.readOnlyValue, { 
+                  backgroundColor: colors.inputBackground,
+                  color: colors.text 
+                }]}>
+                  {selectedSubject}
+                </Text>
+                
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Title*</Text>
+                <TextInput
+                  style={[styles.input, { 
+                    borderColor: colors.border, 
+                    backgroundColor: colors.inputBackground,
+                    color: colors.text 
+                  }]}
+                  placeholder="Test title"
+                  placeholderTextColor={colors.textSecondary}
+                  value={newTest.title}
+                  onChangeText={(text) => setNewTest({...newTest, title: text})}
+                />
+                
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Description</Text>
+                <TextInput
+                  style={[styles.input, styles.multilineInput, { 
+                    borderColor: colors.border, 
+                    backgroundColor: colors.inputBackground,
+                    color: colors.text 
+                  }]}
+                  placeholder="Test description"
+                  placeholderTextColor={colors.textSecondary}
+                  multiline
+                  value={newTest.description}
+                  onChangeText={(text) => setNewTest({...newTest, description: text})}
+                />
+                
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Date*</Text>
+                <TouchableOpacity 
+                  style={[styles.dateInput, { 
+                    borderColor: colors.border, 
+                    backgroundColor: colors.inputBackground 
+                  }]} 
+                  onPress={showDatepicker}
+                >
+                  <Text style={[styles.dateText, { color: colors.text }]}>{newTest.date.toLocaleDateString()}</Text>
+                  <Ionicons name="calendar" size={20} color={colors.primary} />
+                </TouchableOpacity>
+                
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Max Score*</Text>
+                <TextInput
+                  style={[styles.input, { 
+                    borderColor: colors.border, 
+                    backgroundColor: colors.inputBackground,
+                    color: colors.text 
+                  }]}
+                  placeholder="Maximum score"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="numeric"
+                  value={newTest.maxScore}
+                  onChangeText={(text) => setNewTest({...newTest, maxScore: text})}
+                />
+                
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={newTest.date}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                    onChange={handleDateChange}
+                  />
+                )}
+                
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton, { backgroundColor: colors.inputBackground }]}
+                    onPress={() => setShowTestModal(false)}
+                  >
+                    <Text style={[styles.modalButtonText, { color: colors.text }]}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.addButtonModal, { backgroundColor: colors.primary }]}
+                    onPress={handleAddTest}
+                  >
+                    <Text style={[styles.modalButtonText, { color: 'white' }]}>Add Test</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </KeyboardAvoidingView>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContainer: {
     padding: 16,
-    backgroundColor: '#f5f5f5',
+    paddingBottom: 100,
+  },
+  header: {
+    marginBottom: 20,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#03AC13',
+  },
+  fixedFilterBar: {
     marginBottom: 16,
+    backgroundColor: 'transparent',
+    paddingVertical: 4,
+    zIndex: 2,
   },
-  assignmentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+  classFilterContainer: {
+    paddingRight: 16,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  addButton: {
-    backgroundColor: '#03AC13',
-    paddingVertical: 6,
+  classFilter: {
+    paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 20,
-  },
-  addButtonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  newAssignmentContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 8,
-    backgroundColor: 'white',
-  },
-  assignmentsList: {
-    paddingBottom: 8,
-  },
-  assignmentTab: {
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#03AC13',
     borderRadius: 8,
     marginRight: 8,
-    backgroundColor: 'white',
-  },
-  selectedAssignment: {
-    backgroundColor: '#03AC13',
-  },
-  studentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 12,
-    backgroundColor: '#03AC13',
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  headerText: {
-    color: 'white',
-    fontWeight: '600',
-    flex: 1,
-    textAlign: 'center',
-  },
-  studentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    marginBottom: 8,
+    justifyContent: 'center',
   },
-  studentName: {
+  selectedClassFilter: {},
+  classFilterText: {
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  selectedClassFilterText: {
+    color: 'white',
+  },
+  subjectFilterContainer: {
+    marginBottom: 16,
+    borderRadius: 8,
+  },
+  testFilterContainer: {
+    marginBottom: 16,
+    borderRadius: 8,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+    elevation: 2,
+    height: 48,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
     flex: 1,
+    height: '100%',
     fontSize: 16,
   },
-  gradeText: {
+  studentListContainer: {
+    maxHeight: Dimensions.get('window').height * 0.5,
+  },
+  listContent: {
+    paddingBottom: 16,
+  },
+  studentCard: {
+    flexDirection: 'row',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    elevation: 1,
+    alignItems: 'center',
+    borderLeftWidth: 4,
+  },
+  studentAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  studentInfo: {
     flex: 1,
-    textAlign: 'center',
+  },
+  studentName: {
+    fontWeight: '600',
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  studentClass: {
+    fontSize: 14,
+  },
+  gradeInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   gradeInput: {
-    flex: 1,
+    width: 60,
     borderWidth: 1,
-    borderColor: '#ddd',
     borderRadius: 4,
     padding: 8,
     textAlign: 'center',
-    marginHorizontal: 4,
+    marginLeft: 8,
   },
-  averageText: {
-    flex: 1,
-    textAlign: 'center',
+  maxScoreText: {
+    marginLeft: 4,
+    fontSize: 14,
+  },
+  testDetailsContainer: {
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 1,
+  },
+  detailTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  detailLabel: {
+    fontSize: 14,
     fontWeight: '600',
+    marginBottom: 4,
   },
-  exportButton: {
-    backgroundColor: '#03AC13',
+  detailValue: {
+    fontSize: 14,
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  readOnlyValue: {
+    fontSize: 16,
+    marginBottom: 16,
     padding: 12,
     borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 16,
   },
-  exportButtonText: {
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+  actionButtonsContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  bottomButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  exportButton: {},
+  submitButton: {},
+  bottomButtonText: {
     color: 'white',
     fontWeight: '600',
+  },
+  addButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    margin: 20,
+    borderRadius: 10,
+    padding: 16,
+    width: '90%',
+    alignSelf: 'center',
+  },
+  modalScrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 16,
+  },
+  dateInput: {
+    borderWidth: 1,
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dateText: {},
+  multilineInput: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  cancelButton: {},
+  addButtonModal: {},
+  modalButtonText: {
+    fontWeight: '600',
+  },
+});
+
+const createPickerStyles = (colors) => ({
+  inputIOS: {
     fontSize: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 8,
+    color: colors.text,
+    paddingRight: 30,
+    backgroundColor: colors.inputBackground,
+    marginBottom: 16,
+  },
+  inputAndroid: {
+    fontSize: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 8,
+    color: colors.text,
+    paddingRight: 30,
+    backgroundColor: colors.inputBackground,
+    marginBottom: 16,
+  },
+  iconContainer: {
+    top: 10,
+    right: 12,
+  },
+  placeholder: {
+    color: colors.textSecondary,
   },
 });
 

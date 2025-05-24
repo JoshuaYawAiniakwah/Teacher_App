@@ -68,15 +68,21 @@ const subjects = [
   'Physical Education'
 ];
 
+const terms = ['1st Term', '2nd Term', '3rd Term'];
+const academicYears = ['2022/2023', '2023/2024', '2024/2025'];
+
 const mockTests = [
   {
     id: '1',
     title: 'Math Midterm',
     description: 'Covers chapters 1-5',
     date: '2023-05-15',
+    assignedDate: '2023-05-01',
     subject: 'Mathematics',
     class: 'Grade 1',
     maxScore: 100,
+    term: '2nd Term',
+    academicYear: '2022/2023',
     grades: {
       '1': 85,
       '2': 72,
@@ -90,9 +96,12 @@ const mockTests = [
     title: 'Science Quiz',
     description: 'Basic concepts quiz',
     date: '2023-05-20',
+    assignedDate: '2023-05-10',
     subject: 'Science',
     class: 'Grade 1',
     maxScore: 50,
+    term: '2nd Term',
+    academicYear: '2022/2023',
     grades: {
       '1': 42,
       '2': 38,
@@ -106,9 +115,12 @@ const mockTests = [
     title: 'English Test',
     description: 'Grammar and comprehension',
     date: '2023-05-10',
+    assignedDate: '2023-05-01',
     subject: 'English',
     class: 'Grade 2',
     maxScore: 80,
+    term: '2nd Term',
+    academicYear: '2022/2023',
     grades: {
       '6': 65,
       '7': 72,
@@ -129,12 +141,16 @@ const GradebookScreen = () => {
     title: '',
     description: '',
     date: new Date(),
+    assignedDate: new Date(),
     subject: null,
     class: null,
-    maxScore: ''
+    maxScore: '',
+    term: null,
+    academicYear: null
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [tempDate, setTempDate] = useState(new Date());
+  const [showAssignedDatePicker, setShowAssignedDatePicker] = useState(false);
+  const [datePickerMode, setDatePickerMode] = useState(null);
 
   const styles = createStyles(colors);
   const pickerStyles = createPickerStyles(colors);
@@ -190,28 +206,40 @@ const GradebookScreen = () => {
   };
 
   const handleDateChange = (event, selectedDate) => {
-    const currentDate = selectedDate || newTest.date;
-    setShowDatePicker(Platform.OS === 'ios');
-    setNewTest({...newTest, date: currentDate});
+    const currentDate = selectedDate || new Date();
+    setShowDatePicker(false);
+    setShowAssignedDatePicker(false);
+    
+    if (datePickerMode === 'testDate') {
+      setNewTest({...newTest, date: currentDate});
+    } else if (datePickerMode === 'assignedDate') {
+      setNewTest({...newTest, assignedDate: currentDate});
+    }
   };
 
-  const showDatepicker = () => {
-    setTempDate(newTest.date);
-    setShowDatePicker(true);
+  const showDatepicker = (mode) => {
+    setDatePickerMode(mode);
+    if (mode === 'testDate') {
+      setShowDatePicker(true);
+    } else {
+      setShowAssignedDatePicker(true);
+    }
   };
 
   const handleAddTest = () => {
-    if (!newTest.title || !newTest.class || !newTest.subject || !newTest.maxScore) {
+    if (!newTest.title || !newTest.class || !newTest.subject || !newTest.maxScore || !newTest.term || !newTest.academicYear) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
     
     const formattedDate = newTest.date.toISOString().split('T')[0];
+    const formattedAssignedDate = newTest.assignedDate.toISOString().split('T')[0];
     
     const test = {
       ...newTest,
       id: Date.now().toString(),
       date: formattedDate,
+      assignedDate: formattedAssignedDate,
       maxScore: parseInt(newTest.maxScore),
       grades: {}
     };
@@ -221,9 +249,12 @@ const GradebookScreen = () => {
       title: '',
       description: '',
       date: new Date(),
+      assignedDate: new Date(),
       subject: selectedSubject,
       class: selectedClass,
-      maxScore: ''
+      maxScore: '',
+      term: null,
+      academicYear: null
     });
     setShowTestModal(false);
   };
@@ -268,20 +299,53 @@ const GradebookScreen = () => {
     return (
       <View style={[styles.testDetailsContainer, { backgroundColor: colors.card }]}>
         <Text style={[styles.detailTitle, { color: colors.primary }]}>Test Details</Text>
-        <Text style={[styles.detailLabel, { color: colors.text }]}>Title:</Text>
-        <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTest.title}</Text>
         
-        <Text style={[styles.detailLabel, { color: colors.text }]}>Subject:</Text>
-        <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTest.subject}</Text>
+        <View style={styles.detailRow}>
+          <View style={styles.detailColumn}>
+            <Text style={[styles.detailLabel, { color: colors.text }]}>Title:</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTest.title}</Text>
+          </View>
+          <View style={styles.detailColumn}>
+            <Text style={[styles.detailLabel, { color: colors.text }]}>Subject:</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTest.subject}</Text>
+          </View>
+        </View>
         
-        <Text style={[styles.detailLabel, { color: colors.text }]}>Date:</Text>
-        <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTest.date}</Text>
+        <View style={styles.detailRow}>
+          <View style={styles.detailColumn}>
+            <Text style={[styles.detailLabel, { color: colors.text }]}>Class:</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTest.class}</Text>
+          </View>
+          <View style={styles.detailColumn}>
+            <Text style={[styles.detailLabel, { color: colors.text }]}>Max Score:</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTest.maxScore}</Text>
+          </View>
+        </View>
+        
+        <View style={styles.detailRow}>
+          <View style={styles.detailColumn}>
+            <Text style={[styles.detailLabel, { color: colors.text }]}>Term:</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTest.term}</Text>
+          </View>
+          <View style={styles.detailColumn}>
+            <Text style={[styles.detailLabel, { color: colors.text }]}>Academic Year:</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTest.academicYear}</Text>
+          </View>
+        </View>
+        
+        <View style={styles.detailRow}>
+          <View style={styles.detailColumn}>
+            <Text style={[styles.detailLabel, { color: colors.text }]}>Test Date:</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTest.date}</Text>
+          </View>
+          <View style={styles.detailColumn}>
+            <Text style={[styles.detailLabel, { color: colors.text }]}>Assigned Date:</Text>
+            <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTest.assignedDate}</Text>
+          </View>
+        </View>
         
         <Text style={[styles.detailLabel, { color: colors.text }]}>Description:</Text>
-        <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTest.description}</Text>
-        
-        <Text style={[styles.detailLabel, { color: colors.text }]}>Max Score:</Text>
-        <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTest.maxScore}</Text>
+        <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTest.description || 'No description'}</Text>
       </View>
     );
   };
@@ -507,15 +571,47 @@ const GradebookScreen = () => {
                   onChangeText={(text) => setNewTest({...newTest, description: text})}
                 />
                 
-                <Text style={[styles.inputLabel, { color: colors.text }]}>Date*</Text>
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Term*</Text>
+                <RNPickerSelect
+                  onValueChange={(value) => setNewTest({...newTest, term: value})}
+                  items={terms.map(term => ({ label: term, value: term }))}
+                  value={newTest.term}
+                  style={pickerStyles}
+                  useNativeAndroidPickerStyle={false}
+                  placeholder={{ label: "Select term", value: null }}
+                />
+                
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Academic Year*</Text>
+                <RNPickerSelect
+                  onValueChange={(value) => setNewTest({...newTest, academicYear: value})}
+                  items={academicYears.map(year => ({ label: year, value: year }))}
+                  value={newTest.academicYear}
+                  style={pickerStyles}
+                  useNativeAndroidPickerStyle={false}
+                  placeholder={{ label: "Select academic year", value: null }}
+                />
+                
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Test Date*</Text>
                 <TouchableOpacity 
                   style={[styles.dateInput, { 
                     borderColor: colors.border, 
                     backgroundColor: colors.inputBackground 
                   }]} 
-                  onPress={showDatepicker}
+                  onPress={() => showDatepicker('testDate')}
                 >
                   <Text style={[styles.dateText, { color: colors.text }]}>{newTest.date.toLocaleDateString()}</Text>
+                  <Ionicons name="calendar" size={20} color={colors.primary} />
+                </TouchableOpacity>
+                
+                <Text style={[styles.inputLabel, { color: colors.text }]}>Assigned Date*</Text>
+                <TouchableOpacity 
+                  style={[styles.dateInput, { 
+                    borderColor: colors.border, 
+                    backgroundColor: colors.inputBackground 
+                  }]} 
+                  onPress={() => showDatepicker('assignedDate')}
+                >
+                  <Text style={[styles.dateText, { color: colors.text }]}>{newTest.assignedDate.toLocaleDateString()}</Text>
                   <Ionicons name="calendar" size={20} color={colors.primary} />
                 </TouchableOpacity>
                 
@@ -533,9 +629,9 @@ const GradebookScreen = () => {
                   onChangeText={(text) => setNewTest({...newTest, maxScore: text})}
                 />
                 
-                {showDatePicker && (
+                {(showDatePicker || showAssignedDatePicker) && (
                   <DateTimePicker
-                    value={newTest.date}
+                    value={datePickerMode === 'testDate' ? newTest.date : newTest.assignedDate}
                     mode="date"
                     display={Platform.OS === 'ios' ? 'inline' : 'default'}
                     onChange={handleDateChange}
@@ -691,6 +787,13 @@ const createStyles = (colors) => StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 12,
   },
+  detailRow: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  detailColumn: {
+    flex: 1,
+  },
   detailLabel: {
     fontSize: 14,
     fontWeight: '600',
@@ -731,8 +834,12 @@ const createStyles = (colors) => StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
-  exportButton: {},
-  submitButton: {},
+  exportButton: {
+    marginRight: 8,
+  },
+  submitButton: {
+    marginLeft: 8,
+  },
   bottomButtonText: {
     color: 'white',
     fontWeight: '600',
@@ -805,8 +912,12 @@ const createStyles = (colors) => StyleSheet.create({
     borderRadius: 6,
     alignItems: 'center',
   },
-  cancelButton: {},
-  addButtonModal: {},
+  cancelButton: {
+    marginRight: 8,
+  },
+  addButtonModal: {
+    marginLeft: 8,
+  },
   modalButtonText: {
     fontWeight: '600',
   },

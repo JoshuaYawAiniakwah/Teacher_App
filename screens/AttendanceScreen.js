@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,12 @@ import {
   FlatList,
   Alert,
   ScrollView,
-  Dimensions
+  Dimensions,
+  StatusBar
 } from 'react-native';
+import { useTheme } from '../context/themeContext';
+import AuthContext from '../context/authContext';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 const mockStudents = {
   'All Classes': [],
@@ -80,6 +84,7 @@ const AttendanceScreen = () => {
   const [students, setStudents] = useState(mockStudents[selectedClass]);
   const [lastSynced, setLastSynced] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const { colors, isDarkMode } = useTheme();
   const screenWidth = Dimensions.get('window').width;
 
   const handleClassSelect = (cls) => {
@@ -211,9 +216,9 @@ const AttendanceScreen = () => {
   };
 
   const renderStudent = ({ item }) => (
-    <View style={styles.studentRow}>
+    <View style={[styles.studentRow, { backgroundColor: colors.card, borderColor: colors.primary }]}>
       <View style={styles.studentInfo}>
-        <Text style={styles.studentName}>{item.name}</Text>
+        <Text style={[styles.studentName, { color: colors.text }]}>{item.name}</Text>
         <View style={styles.countContainer}>
           {item.absenceCount > 0 && (
             <View style={[styles.badge, styles.absenceBadge]}>
@@ -262,10 +267,16 @@ const AttendanceScreen = () => {
     </View>
   );
 
+  const styles = createStyles(colors);
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Class Attendance</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar backgroundColor={colors.card} barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+      
+      {/* Header without dropdown menu */}
+      <View style={[styles.header, { backgroundColor: colors.card }]}>
+        <Text style={[styles.title, { color: colors.text }]}>Class Attendance</Text>
+        
         <TouchableOpacity 
           style={styles.syncButton} 
           onPress={syncWithSchoolSystem}
@@ -278,7 +289,7 @@ const AttendanceScreen = () => {
       </View>
       
       {lastSynced && (
-        <Text style={styles.syncStatus}>Last synced: {lastSynced}</Text>
+        <Text style={[styles.syncStatus, { color: colors.textSecondary }]}>Last synced: {lastSynced}</Text>
       )}
 
       <ScrollView 
@@ -293,14 +304,18 @@ const AttendanceScreen = () => {
             style={[
               styles.classFilter,
               selectedClass === cls && styles.selectedClassFilter,
-              { width: screenWidth / 4.5 }
+              { 
+                width: screenWidth / 4.5,
+                backgroundColor: colors.inputBackground,
+              }
             ]}
             onPress={() => handleClassSelect(cls)}
           >
             <Text 
               style={[
                 styles.classFilterText,
-                selectedClass === cls && styles.selectedClassFilterText
+                selectedClass === cls && styles.selectedClassFilterText,
+                { color: colors.text }
               ]}
               numberOfLines={1}
               ellipsizeMode="tail"
@@ -313,7 +328,7 @@ const AttendanceScreen = () => {
 
       {selectedClass !== 'All Classes' && students.length > 0 ? (
         <>
-          <View style={styles.summaryRow}>
+          <View style={[styles.summaryRow, { backgroundColor: colors.primary }]}>
             <Text style={styles.summaryText}>
               Present: {students.filter(s => s.attendance === 'present').length}
             </Text>
@@ -334,7 +349,7 @@ const AttendanceScreen = () => {
         </>
       ) : (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
             {selectedClass === 'All Classes' 
               ? 'Please select a class to view students' 
               : 'No students found in this class'}
@@ -368,25 +383,26 @@ const AttendanceScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#f5f5f5',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+    padding: 16,
+    borderRadius: 10,
+    elevation: 2,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#03AC13',
   },
   syncButton: {
-    backgroundColor: '#03AC13',
+    backgroundColor: colors.primary,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 6,
@@ -397,7 +413,6 @@ const styles = StyleSheet.create({
   },
   syncStatus: {
     fontSize: 12,
-    color: '#7f8c8d',
     marginBottom: 12,
     textAlign: 'right',
   },
@@ -412,16 +427,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: '#eee',
     marginRight: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   selectedClassFilter: {
-    backgroundColor: '#03AC13',
+    backgroundColor: colors.primary,
   },
   classFilterText: {
-    color: '#333',
     fontWeight: '500',
     fontSize: 14,
   },
@@ -429,11 +442,9 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   studentRow: {
-    backgroundColor: 'white',
     borderRadius: 10,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#03AC13',
     elevation: 2,
   },
   studentInfo: {
@@ -445,7 +456,6 @@ const styles = StyleSheet.create({
   studentName: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#2c3e50',
   },
   countContainer: {
     flexDirection: 'row',
@@ -479,7 +489,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#ecf0f1',
+    backgroundColor: colors.inputBackground,
     alignItems: 'center',
   },
   presentBtn: {
@@ -524,7 +534,6 @@ const styles = StyleSheet.create({
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#03AC13',
     padding: 12,
     borderRadius: 8,
     marginBottom: 8,
@@ -540,7 +549,6 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   emptyText: {
-    color: '#666',
     fontSize: 16,
     textAlign: 'center',
     paddingHorizontal: 20,

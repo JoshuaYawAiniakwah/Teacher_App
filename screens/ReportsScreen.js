@@ -100,22 +100,43 @@ const attendanceOptions = [
 
 const mockGrades = {
   'Mathematics': [
-    { type: 'Test', score: '85%', date: '2023-05-15' },
+    { type: 'Test 1', score: '85%', date: '2023-05-15' },
+    { type: 'Test 2', score: '90%', date: '2023-05-20' },
     { type: 'Assignment', score: '90%', date: '2023-05-10' },
-    { type: 'Exam', score: '78%', date: '2023-05-20' },
+    { type: 'Exam', score: '78%', date: '2023-05-25' },
   ],
   'English': [
-    { type: 'Test', score: '92%', date: '2023-05-12' },
+    { type: 'Test 1', score: '92%', date: '2023-05-12' },
+    { type: 'Test 2', score: '88%', date: '2023-05-19' },
     { type: 'Assignment', score: '88%', date: '2023-05-08' },
   ],
   'Science': [
-    { type: 'Test', score: '76%', date: '2023-05-18' },
+    { type: 'Test 1', score: '76%', date: '2023-05-18' },
+    { type: 'Test 2', score: '84%', date: '2023-05-22' },
     { type: 'Exam', score: '82%', date: '2023-05-25' },
   ],
   'Social Studies': [
+    { type: 'Test 1', score: '89%', date: '2023-05-15' },
+    { type: 'Test 2', score: '93%', date: '2023-05-22' },
     { type: 'Assignment', score: '95%', date: '2023-05-05' },
-    { type: 'Test', score: '89%', date: '2023-05-15' },
   ],
+};
+
+const calculateTestAverage = (subjectGrades) => {
+  // Get only Test 1 and Test 2
+  const test1 = subjectGrades.find(grade => grade.type === 'Test 1');
+  const test2 = subjectGrades.find(grade => grade.type === 'Test 2');
+  
+  // Return null if either test is missing
+  if (!test1 || !test2) return null;
+  
+  // Parse scores and handle NaN cases
+  const score1 = parseInt(test1.score) || 0;
+  const score2 = parseInt(test2.score) || 0;
+  
+  // Calculate average of just Test 1 and Test 2
+  const average = (score1 + score2) / 2;
+  return `${Math.round(average)}%`;
 };
 
 const attendanceData = {
@@ -294,15 +315,29 @@ const ReportsScreen = () => {
   const renderGradeItems = () => {
     if (!selectedSubject || !mockGrades[selectedSubject]) return null;
     
-    return mockGrades[selectedSubject].map((item, index) => (
-      <View key={index} style={[styles.gradeDetailItem, { borderBottomColor: colors.border }]}>
-        <Text style={[styles.gradeType, { color: colors.text }]}>{item.type}</Text>
-        <View style={styles.gradeScoreContainer}>
-          <Text style={[styles.gradeScore, { color: colors.primary }]}>{item.score}</Text>
-          <Text style={[styles.gradeDate, { color: colors.textSecondary }]}>{item.date}</Text>
-        </View>
+    const subjectGrades = mockGrades[selectedSubject];
+    const testAverage = calculateTestAverage(subjectGrades);
+    
+    return (
+      <View>
+        {testAverage && (
+          <View style={[styles.averageContainer, { backgroundColor: colors.card }]}>
+            <Text style={[styles.averageLabel, { color: colors.text }]}>Test Average:</Text>
+            <Text style={[styles.averageValue, { color: colors.primary }]}>{testAverage}</Text>
+          </View>
+        )}
+        
+        {subjectGrades.map((item, index) => (
+          <View key={index} style={[styles.gradeDetailItem, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.gradeType, { color: colors.text }]}>{item.type}</Text>
+            <View style={styles.gradeScoreContainer}>
+              <Text style={[styles.gradeScore, { color: colors.primary }]}>{item.score}</Text>
+              <Text style={[styles.gradeDate, { color: colors.textSecondary }]}>{item.date}</Text>
+            </View>
+          </View>
+        ))}
       </View>
-    ));
+    );
   };
 
   const pickerSelectStyles = {
@@ -913,6 +948,22 @@ const createStyles = (colors, screenWidth, isDarkMode) => StyleSheet.create({
   },
   gradeDate: {
     fontSize: 12,
+  },
+  averageContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  averageLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  averageValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   attendanceItem: {
     flexDirection: 'row',

@@ -69,7 +69,7 @@ const DashboardScreen = () => {
     { title: 'Assignments', icon: 'book-outline', screen: 'AssignmentScreen' },
     { title: 'Reports', icon: 'document-text-outline', screen: 'ReportsScreen' },
     { title: 'Lesson Plan', icon: 'calendar-outline', screen: 'LessonPlanScreen' },
-    { title: 'Classes', icon: 'school-outline', screen: 'ClassesScreen' },
+    { title: 'Communication', icon: 'chatbubbles-outline', screen: 'CommunicationScreen' },
     { title: 'Gradebook', icon: 'reader-outline', screen: 'GradebookScreen' },
   ];
 

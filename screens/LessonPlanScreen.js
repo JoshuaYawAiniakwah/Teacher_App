@@ -12,12 +12,54 @@ import {
   TouchableWithoutFeedback,
   Keyboard
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import RNPickerSelect from 'react-native-picker-select';
 import { useTheme } from '../context/themeContext';
+
+const classes = [
+  'Creche',
+  'Nursery 1',
+  'Nursery 2',
+  'KG 1',
+  'KG 2',
+  'Grade 1',
+  'Grade 2',
+  'Grade 3',
+  'Grade 4',
+  'Grade 5',
+  'Grade 6',
+  'Grade 7',
+  'Grade 8',
+  'Grade 9'
+];
+
+const subjects = [
+  'Mathematics',
+  'English',
+  'Science',
+  'Social Studies',
+  'ICT',
+  'Creative Arts',
+  'Physical Education'
+];
+
+const durations = [
+  '30 minutes',
+  '45 minutes',
+  '1 hour',
+  '1.5 hours',
+  '2 hours',
+  '2.5 hours',
+  '3 hours'
+];
 
 const mockLessonPlans = [
   {
     id: '1',
     title: 'Introduction to Algebra',
+    subject: 'Mathematics',
+    class: 'Grade 5',
+    duration: '1 hour',
     date: '2023-10-10',
     objectives: 'Understand basic algebraic concepts and solve simple equations',
     materials: 'Textbook Chapter 1, Worksheets 1-3',
@@ -26,6 +68,9 @@ const mockLessonPlans = [
   {
     id: '2',
     title: 'Photosynthesis Process',
+    subject: 'Science',
+    class: 'Grade 6',
+    duration: '45 minutes',
     date: '2023-10-12',
     objectives: 'Learn about photosynthesis and its importance in ecosystems',
     materials: 'Microscope, plant samples, textbook Chapter 4',
@@ -38,6 +83,9 @@ const LessonPlansScreen = () => {
   const [plans, setPlans] = useState(mockLessonPlans);
   const [newPlan, setNewPlan] = useState({
     title: '',
+    subject: null,
+    class: null,
+    duration: null,
     date: new Date().toISOString().split('T')[0],
     objectives: '',
     materials: ''
@@ -49,8 +97,8 @@ const LessonPlansScreen = () => {
   const styles = createStyles(colors);
 
   const createLessonPlan = () => {
-    if (!newPlan.title || !newPlan.objectives) {
-      Alert.alert('Error', 'Title and Objectives are required');
+    if (!newPlan.title || !newPlan.objectives || !newPlan.subject || !newPlan.class || !newPlan.duration) {
+      Alert.alert('Error', 'All fields are required');
       return;
     }
 
@@ -65,6 +113,9 @@ const LessonPlansScreen = () => {
     ]);
     setNewPlan({
       title: '',
+      subject: null,
+      class: null,
+      duration: null,
       date: new Date().toISOString().split('T')[0],
       objectives: '',
       materials: ''
@@ -97,8 +148,8 @@ const LessonPlansScreen = () => {
   };
 
   const updateLessonPlan = () => {
-    if (!editingPlan.title || !editingPlan.objectives) {
-      Alert.alert('Error', 'Title and Objectives are required');
+    if (!editingPlan.title || !editingPlan.objectives || !editingPlan.subject || !editingPlan.class || !editingPlan.duration) {
+      Alert.alert('Error', 'All fields are required');
       return;
     }
 
@@ -109,12 +160,62 @@ const LessonPlansScreen = () => {
     Alert.alert('Success', 'Lesson plan updated successfully');
   };
 
+  const pickerSelectStyles = {
+    inputIOS: {
+      fontSize: 16,
+      paddingVertical: 12,
+      paddingHorizontal: 10,
+      borderWidth: 1,
+      borderColor: colors.primary,
+      borderRadius: 8,
+      color: colors.text,
+      paddingRight: 30,
+      backgroundColor: colors.inputBackground,
+      marginBottom: 12,
+    },
+    inputAndroid: {
+      fontSize: 16,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: colors.primary,
+      borderRadius: 8,
+      color: colors.text,
+      paddingRight: 30,
+      backgroundColor: colors.inputBackground,
+      marginBottom: 12,
+    },
+    iconContainer: {
+      top: 10,
+      right: 12,
+    },
+    placeholder: {
+      color: colors.textSecondary,
+    },
+  };
+
   const renderPlan = ({ item }) => (
     <View style={[styles.planCard, { backgroundColor: colors.card }]}>
       <View style={styles.planHeader}>
         <Text style={[styles.planTitle, { color: colors.text }]}>{item.title}</Text>
         <Text style={[styles.planDate, { color: colors.textSecondary }]}>{item.date}</Text>
       </View>
+      
+      <View style={styles.planMetaContainer}>
+        <View style={styles.planMetaItem}>
+          <Ionicons name="book" size={16} color={colors.textSecondary} />
+          <Text style={[styles.planMetaText, { color: colors.text }]}>{item.subject}</Text>
+        </View>
+        <View style={styles.planMetaItem}>
+          <Ionicons name="people" size={16} color={colors.textSecondary} />
+          <Text style={[styles.planMetaText, { color: colors.text }]}>{item.class}</Text>
+        </View>
+        <View style={styles.planMetaItem}>
+          <Ionicons name="time" size={16} color={colors.textSecondary} />
+          <Text style={[styles.planMetaText, { color: colors.text }]}>{item.duration}</Text>
+        </View>
+      </View>
+      
       <Text style={[styles.sectionTitle, { color: colors.primary }]}>Objectives:</Text>
       <Text style={[styles.planText, { color: colors.text }]}>{item.objectives}</Text>
       <Text style={[styles.sectionTitle, { color: colors.primary }]}>Materials:</Text>
@@ -161,22 +262,60 @@ const LessonPlansScreen = () => {
               backgroundColor: colors.inputBackground,
               color: colors.text 
             }]}
-            placeholder="Lesson Title"
+            placeholder="Lesson Title (required)"
             placeholderTextColor={colors.textSecondary}
             value={newPlan.title}
             onChangeText={(text) => setNewPlan({...newPlan, title: text})}
           />
+          
+          <RNPickerSelect
+            onValueChange={(value) => setNewPlan({...newPlan, subject: value})}
+            items={subjects.map(subject => ({ label: subject, value: subject }))}
+            value={newPlan.subject}
+            style={pickerSelectStyles}
+            useNativeAndroidPickerStyle={false}
+            placeholder={{ label: "Select Subject (required)", value: null }}
+            Icon={() => {
+              return <Ionicons name="chevron-down" size={20} color={colors.primary} />;
+            }}
+          />
+          
+          <RNPickerSelect
+            onValueChange={(value) => setNewPlan({...newPlan, class: value})}
+            items={classes.map(cls => ({ label: cls, value: cls }))}
+            value={newPlan.class}
+            style={pickerSelectStyles}
+            useNativeAndroidPickerStyle={false}
+            placeholder={{ label: "Select Class (required)", value: null }}
+            Icon={() => {
+              return <Ionicons name="chevron-down" size={20} color={colors.primary} />;
+            }}
+          />
+          
+          <RNPickerSelect
+            onValueChange={(value) => setNewPlan({...newPlan, duration: value})}
+            items={durations.map(duration => ({ label: duration, value: duration }))}
+            value={newPlan.duration}
+            style={pickerSelectStyles}
+            useNativeAndroidPickerStyle={false}
+            placeholder={{ label: "Select Duration (required)", value: null }}
+            Icon={() => {
+              return <Ionicons name="chevron-down" size={20} color={colors.primary} />;
+            }}
+          />
+          
           <TextInput
             style={[styles.input, { 
               borderColor: colors.border, 
               backgroundColor: colors.inputBackground,
               color: colors.text 
             }]}
-            placeholder="Date (YYYY-MM-DD)"
+            placeholder="Date (YYYY-MM-DD) (required)"
             placeholderTextColor={colors.textSecondary}
             value={newPlan.date}
             onChangeText={(text) => setNewPlan({...newPlan, date: text})}
           />
+          
           <TextInput
             style={[styles.input, { 
               height: 80, 
@@ -184,12 +323,13 @@ const LessonPlansScreen = () => {
               backgroundColor: colors.inputBackground,
               color: colors.text 
             }]}
-            placeholder="Learning Objectives"
+            placeholder="Learning Objectives (required)"
             placeholderTextColor={colors.textSecondary}
             multiline
             value={newPlan.objectives}
             onChangeText={(text) => setNewPlan({...newPlan, objectives: text})}
           />
+          
           <TextInput
             style={[styles.input, { 
               height: 60, 
@@ -203,6 +343,7 @@ const LessonPlansScreen = () => {
             value={newPlan.materials}
             onChangeText={(text) => setNewPlan({...newPlan, materials: text})}
           />
+          
           <TouchableOpacity 
             style={[styles.submitButton, { backgroundColor: colors.primary }]}
             onPress={createLessonPlan}
@@ -237,10 +378,46 @@ const LessonPlansScreen = () => {
                   backgroundColor: colors.inputBackground,
                   color: colors.text 
                 }]}
-                placeholder="Lesson Title"
+                placeholder="Lesson Title (required)"
                 placeholderTextColor={colors.textSecondary}
                 value={editingPlan?.title || ''}
                 onChangeText={(text) => handleEditChange('title', text)}
+              />
+              
+              <RNPickerSelect
+                onValueChange={(value) => handleEditChange('subject', value)}
+                items={subjects.map(subject => ({ label: subject, value: subject }))}
+                value={editingPlan?.subject || null}
+                style={pickerSelectStyles}
+                useNativeAndroidPickerStyle={false}
+                placeholder={{ label: "Select Subject (required)", value: null }}
+                Icon={() => {
+                  return <Ionicons name="chevron-down" size={20} color={colors.primary} />;
+                }}
+              />
+              
+              <RNPickerSelect
+                onValueChange={(value) => handleEditChange('class', value)}
+                items={classes.map(cls => ({ label: cls, value: cls }))}
+                value={editingPlan?.class || null}
+                style={pickerSelectStyles}
+                useNativeAndroidPickerStyle={false}
+                placeholder={{ label: "Select Class (required)", value: null }}
+                Icon={() => {
+                  return <Ionicons name="chevron-down" size={20} color={colors.primary} />;
+                }}
+              />
+              
+              <RNPickerSelect
+                onValueChange={(value) => handleEditChange('duration', value)}
+                items={durations.map(duration => ({ label: duration, value: duration }))}
+                value={editingPlan?.duration || null}
+                style={pickerSelectStyles}
+                useNativeAndroidPickerStyle={false}
+                placeholder={{ label: "Select Duration (required)", value: null }}
+                Icon={() => {
+                  return <Ionicons name="chevron-down" size={20} color={colors.primary} />;
+                }}
               />
               
               <TextInput
@@ -249,7 +426,7 @@ const LessonPlansScreen = () => {
                   backgroundColor: colors.inputBackground,
                   color: colors.text 
                 }]}
-                placeholder="Date (YYYY-MM-DD)"
+                placeholder="Date (YYYY-MM-DD) (required)"
                 placeholderTextColor={colors.textSecondary}
                 value={editingPlan?.date || ''}
                 onChangeText={(text) => handleEditChange('date', text)}
@@ -261,7 +438,7 @@ const LessonPlansScreen = () => {
                   backgroundColor: colors.inputBackground,
                   color: colors.text 
                 }]}
-                placeholder="Learning Objectives"
+                placeholder="Learning Objectives (required)"
                 placeholderTextColor={colors.textSecondary}
                 multiline
                 value={editingPlan?.objectives || ''}
@@ -372,6 +549,19 @@ const createStyles = (colors) => StyleSheet.create({
   planDate: {
     fontSize: 14,
   },
+  planMetaContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  planMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  planMetaText: {
+    marginLeft: 4,
+    fontSize: 14,
+  },
   sectionTitle: {
     fontWeight: '600',
     marginTop: 8,
@@ -454,4 +644,4 @@ const createStyles = (colors) => StyleSheet.create({
   },
 });
 
-export default LessonPlansScreen; 
+export default LessonPlansScreen;

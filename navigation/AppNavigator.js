@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
 import DashboardScreen from '../screens/DashboardScreen';
 import AttendanceScreen from '../screens/AttendanceScreen';
+import SBAScreen from '../screens/SBAScreen';
 import StudentsScreen from '../screens/StudentScreen';
 import TimetableScreen from '../screens/TimetableScreen';
 import NotificationScreen from '../screens/NotificationScreen';
@@ -147,6 +148,11 @@ const MainStack = () => {
         name="GradebookScreen" 
         component={GradebookScreen} 
         options={{ title: 'Gradebook' }}
+      />
+      <Stack.Screen 
+        name="SBAScreen" 
+        component={SBAScreen} 
+        options={{ title: 'SBA Records' }}
       />
       <Stack.Screen 
         name="Notifications" 
